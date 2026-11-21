@@ -850,3 +850,35 @@ body {
     min-width: 44%;
   }
 }
+
+
+.navegacao-conta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
+.navegacao-conta [hidden], .modal-auth [hidden] { display:none !important; }
+.nome-usuario { font-family:var(--font-mono); font-size:12px; color:var(--signal); }
+.link-topo { color:var(--text); text-decoration:none; font-size:13px; }
+.link-topo:hover { color:var(--signal); }
+.botao-conta { background:transparent; color:var(--text); border:1px solid var(--border); padding:9px 12px; font:500 13px var(--font-body); cursor:pointer; }
+.botao-conta:hover { border-color:var(--signal); }
+.modal-auth { max-width:440px; }
+.botao-fechar-modal { position:absolute; top:12px; right:18px; z-index:2; }
+.abas-auth { display:flex; gap:8px; margin-bottom:20px; }
+.abas-auth button { background:var(--surface-alt); color:var(--text-muted); border:1px solid var(--border); padding:10px 14px; flex:1; font:500 13px var(--font-body); cursor:pointer; }
+.abas-auth button.ativo { border-color:var(--signal); color:var(--signal); }
+#form-autenticacao label { display:block; font-size:13px; margin:12px 0 5px; color:var(--text-muted); }
+#form-autenticacao input { width:100%; background:var(--bg); border:1px solid var(--border); padding:12px; color:var(--text); font:14px var(--font-body); border-radius:0; }
+#form-autenticacao input:focus { outline:1px solid var(--signal); }
+#form-autenticacao .botao-finalizar { margin-top:20px; width:100%; }
+@media (max-width:700px) {
+  .cabecalho-conteudo { align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .navegacao-conta { gap:8px; }
+  .nome-usuario { display:none; }
+  .link-topo, .botao-conta { font-size:12px; }
+}
+
+.modal-confirmacao { max-width:460px; }
+.confirmacao-aviso { color:var(--text-muted); font-size:13px; margin-bottom:14px; }
+.confirmacao-linha { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px; }
+.confirmacao-total { border-bottom:none; font-weight:700; }
+.confirmacao-total span:last-child { color:var(--accent); font-size:18px; }
+.botao-voltar { width:100%; margin-top:10px; padding:11px; background:transparent; color:var(--text); border:1px solid var(--border); font:500 13px var(--font-body); cursor:pointer; }
+.botao-voltar:hover { border-color:var(--signal); }

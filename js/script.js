@@ -12,16 +12,12 @@ class Produto {
     return this.estoque > 0;
   }
 
-  reduzirEstoque(quantidade) {
-    if (quantidade <= this.estoque) {
-      this.estoque = this.estoque - quantidade;
-      return true;
-    }
-    return false;
+  estaComEstoqueBaixo(limiar) {
+    return this.estaDisponivel() && this.estoque <= limiar;
   }
 
-  aumentarEstoque(quantidade) {
-    this.estoque = this.estoque + quantidade;
+  obterCodigoFormatado() {
+    return "TN-" + String(this.codigo).padStart(3, "0");
   }
 }
 
@@ -49,10 +45,6 @@ class Carrinho {
       return true;
     }
     return false;
-  }
-
-  removerCupom() {
-    this.cupom = null;
   }
 
   adicionarProduto(produto, quantidade) {
@@ -119,21 +111,23 @@ class Carrinho {
   }
 
   calcularDesconto() {
-    const subtotal = this.calcularSubtotal();
+    const subtotalCentavos = Math.round(this.calcularSubtotal() * 100);
     let percentualDesconto = 0;
 
-    if (subtotal >= 3000) {
-      percentualDesconto += 0.10;
+    if (subtotalCentavos >= 300000) {
+      percentualDesconto += 10;
     }
     if (this.cupom === "TECHNOVA5") {
-      percentualDesconto += 0.05;
+      percentualDesconto += 5;
     }
 
-    return subtotal * percentualDesconto;
+    return Math.round(subtotalCentavos * percentualDesconto / 100) / 100;
   }
 
   calcularTotal() {
-    return this.calcularSubtotal() - this.calcularDesconto();
+    const subtotalCentavos = Math.round(this.calcularSubtotal() * 100);
+    const descontoCentavos = Math.round(this.calcularDesconto() * 100);
+    return (subtotalCentavos - descontoCentavos) / 100;
   }
 
   estaVazio() {
@@ -146,14 +140,7 @@ class Carrinho {
   }
 }
 
-const produtos = [
-  new Produto(1, "Notebook Gamer Pro", "Informática", 4500.00, 5, "notebook.jpg"),
-  new Produto(2, "Mouse Gamer RGB", "Informática", 150.00, 20, "mouse.jpg"),
-  new Produto(3, "Console X-Play", "Games", 3000.00, 0, "console.jpg"),
-  new Produto(4, "Controle Sem Fio", "Games", 250.00, 15, "controle.jpg"),
-  new Produto(5, "Headset Gamer", "Acessórios", 350.00, 10, "headset.jpg"),
-  new Produto(6, "Cadeira Gamer", "Acessórios", 1200.00, 3, "cadeira.jpg"),
-];
+let produtos = [];
 
 const carrinho = new Carrinho();
 
@@ -161,10 +148,39 @@ let categoriaSelecionada = "Todos";
 let termoBusca = "";
 let criterioOrdenacao = "relevancia";
 let temporizadorToast = null;
+let usuarioAtual = null;
+let autenticarParaComprar = false;
+let limiarEstoque = 3;
 const CHAVE_ARMAZENAMENTO = "technova-carrinho";
 
 function formatarMoeda(valor) {
-  return "R$ " + valor.toFixed(2).replace(".", ",");
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valor));
+}
+
+function escaparHtml(valor) {
+  return String(valor).replace(/[&<>"']/g, caractere => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[caractere]);
+}
+
+async function chamarApi(caminho, opcoes = {}) {
+  let resposta;
+  try {
+    resposta = await fetch(caminho, {
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      ...opcoes
+    });
+  } catch (erro) {
+    throw new Error("Não foi possível conectar ao servidor.");
+  }
+  const dados = await resposta.json().catch(() => ({}));
+  if (!resposta.ok) {
+    const erro = new Error(dados.erro || "Não foi possível concluir a operação.");
+    erro.status = resposta.status;
+    throw erro;
+  }
+  return dados;
 }
 
 function obterIniciais(nome) {
@@ -225,7 +241,7 @@ function renderizarCategorias() {
 function filtrarProdutos() {
   const resultado = [];
 
-  for (var i = 0; i < produtos.length; i++) {
+  for (let i = 0; i < produtos.length; i++) {
     const produto = produtos[i];
     const combinaCategoria = categoriaSelecionada === "Todos" || produto.categoria === categoriaSelecionada;
     const combinaBusca = produto.nome.toLowerCase().includes(termoBusca.toLowerCase());
@@ -258,19 +274,19 @@ function criarCardProduto(produto, indice) {
   card.style.animationDelay = (indice * 60) + "ms";
 
   const disponivel = produto.estaDisponivel();
-  const estoqueBaixo = disponivel && produto.estoque <= 3;
-  const codigoFormatado = "TN-" + String(produto.codigo).padStart(3, "0");
+  const estoqueBaixo = produto.estaComEstoqueBaixo(limiarEstoque);
+  const codigoFormatado = produto.obterCodigoFormatado();
 
   card.innerHTML = `
-    <div class="card-imagem-wrap" data-iniciais="${obterIniciais(produto.nome)}">
-      <img class="card-imagem" src="images/${produto.imagem}" alt="${produto.nome}" loading="lazy" />
+    <div class="card-imagem-wrap" data-iniciais="${escaparHtml(obterIniciais(produto.nome))}">
+      <img class="card-imagem" src="${escaparHtml(produto.imagem)}" alt="${escaparHtml(produto.nome)}" loading="lazy" />
       <span class="card-sku">${codigoFormatado}</span>
       ${!disponivel ? '<span class="card-selo-indisponivel">Esgotado</span>' : ""}
       ${estoqueBaixo ? `<span class="card-selo-baixo">Últimas ${produto.estoque}!</span>` : ""}
     </div>
     <div class="card-info">
-      <span class="card-categoria">${produto.categoria}</span>
-      <span class="card-nome">${produto.nome}</span>
+      <span class="card-categoria">${escaparHtml(produto.categoria)}</span>
+      <span class="card-nome">${escaparHtml(produto.nome)}</span>
       <span class="card-preco">${formatarMoeda(produto.preco)}</span>
       <span class="card-estoque ${disponivel ? "" : "indisponivel"}">
         ${disponivel ? produto.estoque + " em estoque" : "Indisponível"}
@@ -378,7 +394,7 @@ function renderizarItensCarrinho() {
     linha.className = "item-carrinho";
     linha.innerHTML = `
       <div class="item-info">
-        <div class="item-nome">${item.produto.nome}</div>
+        <div class="item-nome">${escaparHtml(item.produto.nome)}</div>
         <div class="item-preco">${formatarMoeda(item.produto.preco)} un. · Subtotal: ${formatarMoeda(item.calcularSubtotal())}</div>
       </div>
       <div class="item-controles">
@@ -439,8 +455,9 @@ function restaurarCarrinho() {
   for (const itemSalvo of itensSalvos) {
     const produto = produtos.find((p) => p.codigo === itemSalvo.codigo);
     if (produto) {
-      const quantidadePossivel = Math.min(itemSalvo.quantidade, produto.estoque);
-      if (quantidadePossivel > 0) {
+      const solicitada = Number(itemSalvo.quantidade);
+      const quantidadePossivel = Math.min(solicitada, produto.estoque);
+      if (Number.isSafeInteger(quantidadePossivel) && quantidadePossivel > 0) {
         carrinho.adicionarProduto(produto, quantidadePossivel);
       }
     }
@@ -491,22 +508,78 @@ function finalizarCompra() {
     mostrarToast("Carrinho vazio: adicione produtos antes de finalizar.", "erro");
     return;
   }
-
-  let resumoHtml = "";
-  for (const item of carrinho.itens) {
-    resumoHtml += `<p>${item.quantidade}x ${item.produto.nome} — ${formatarMoeda(item.calcularSubtotal())}</p>`;
-    item.produto.reduzirEstoque(item.quantidade);
+  if (!usuarioAtual) {
+    autenticarParaComprar = true;
+    mostrarToast("Faça login para confirmar sua compra.", "erro");
+    abrirAutenticacao();
+    return;
   }
-  resumoHtml += `<p><strong>Subtotal: ${formatarMoeda(carrinho.calcularSubtotal())}</strong></p>`;
-  resumoHtml += `<p><strong>Desconto: ${formatarMoeda(carrinho.calcularDesconto())}</strong></p>`;
-  resumoHtml += `<p><strong>Total pago: ${formatarMoeda(carrinho.calcularTotal())}</strong></p>`;
+  abrirConfirmacao();
+}
 
-  document.getElementById("resumo-final").innerHTML = resumoHtml;
-  document.getElementById("modal-sucesso").classList.add("visivel");
-
-  carrinho.limpar();
-  atualizarInterfaceCarrinho();
+function abrirConfirmacao() {
+  let linhas = "";
+  for (const item of carrinho.itens) {
+    linhas += `<div class="confirmacao-linha"><span>${item.quantidade}x ${escaparHtml(item.produto.nome)}</span>` +
+      `<span>${formatarMoeda(item.calcularSubtotal())}</span></div>`;
+  }
+  document.getElementById("resumo-confirmacao").innerHTML = linhas +
+    `<div class="confirmacao-linha"><span>Itens</span><span>${carrinho.calcularQuantidadeTotal()}</span></div>` +
+    `<div class="confirmacao-linha"><span>Subtotal</span><span>${formatarMoeda(carrinho.calcularSubtotal())}</span></div>` +
+    `<div class="confirmacao-linha"><span>Desconto</span><span>${formatarMoeda(carrinho.calcularDesconto())}</span></div>` +
+    `<div class="confirmacao-linha confirmacao-total"><span>Valor final</span><span>${formatarMoeda(carrinho.calcularTotal())}</span></div>`;
   fecharCarrinho();
+  document.getElementById("modal-confirmacao").classList.add("visivel");
+}
+
+function fecharConfirmacao() {
+  document.getElementById("modal-confirmacao").classList.remove("visivel");
+}
+
+async function confirmarPedido() {
+  if (carrinho.estaVazio()) {
+    fecharConfirmacao();
+    mostrarToast("Carrinho vazio: adicione produtos antes de finalizar.", "erro");
+    return;
+  }
+  const botao = document.getElementById("botao-confirmar-pedido");
+  botao.disabled = true;
+  botao.textContent = "Confirmando pedido...";
+  try {
+    const itens = carrinho.itens.map(item => ({ codigo: item.produto.codigo, quantidade: item.quantidade }));
+    const dados = await chamarApi("/api/pedidos", {
+      method: "POST", body: JSON.stringify({ itens, cupom: carrinho.cupom })
+    });
+    const linhas = carrinho.itens.map(item =>
+      `<p>${item.quantidade}x ${escaparHtml(item.produto.nome)}</p>`).join("");
+    document.getElementById("resumo-final").innerHTML =
+      `<p><strong>Pedido #${escaparHtml(dados.numeroPedido)}</strong></p>${linhas}` +
+      `<p>Subtotal: ${formatarMoeda(dados.subtotal)}</p>` +
+      `<p>Desconto: ${formatarMoeda(dados.desconto)}</p>` +
+      `<p><strong>Total: ${formatarMoeda(dados.total)}</strong></p>` +
+      `<p>O pedido e a baixa do estoque foram registrados no banco.</p>`;
+    carrinho.limpar();
+    atualizarInterfaceCarrinho();
+    fecharConfirmacao();
+    fecharCarrinho();
+    document.getElementById("modal-sucesso").classList.add("visivel");
+    await carregarProdutos();
+  } catch (erro) {
+    fecharConfirmacao();
+    mostrarToast(erro.message, "erro");
+    if (erro.status === 401) {
+      usuarioAtual = null;
+      atualizarCabecalho();
+      autenticarParaComprar = true;
+      abrirAutenticacao();
+    } else {
+      abrirCarrinho();
+    }
+    if (erro.status === 409) await carregarProdutos();
+  } finally {
+    botao.textContent = "Confirmar pedido";
+    botao.disabled = false;
+  }
 }
 
 function abrirCarrinho() {
@@ -519,39 +592,185 @@ function fecharCarrinho() {
   document.getElementById("overlay").classList.remove("visivel");
 }
 
+function atualizarCabecalho() {
+  const botao = document.getElementById("botao-conta");
+  const rotulo = document.getElementById("nome-usuario");
+  const linkPedidos = document.getElementById("link-pedidos");
+  const linkAdmin = document.getElementById("link-admin");
+  const botaoSair = document.getElementById("botao-sair");
+  rotulo.textContent = usuarioAtual ? usuarioAtual.nome.split(" ")[0] : "";
+  botao.textContent = usuarioAtual ? "Minha conta" : "Entrar / cadastrar";
+  linkPedidos.hidden = !usuarioAtual;
+  linkAdmin.hidden = usuarioAtual?.perfil !== "admin";
+  botaoSair.hidden = !usuarioAtual;
+}
+
+function abrirAutenticacao() {
+  if (usuarioAtual) {
+    window.location.href = "pedidos.html";
+    return;
+  }
+  fecharCarrinho();
+  document.getElementById("modal-autenticacao").classList.add("visivel");
+}
+
+function validarFormularioAutenticacao(payload, cadastro) {
+  if (cadastro) {
+    const partesNome = payload.nome.split(/\s+/).filter(parte => parte.length > 0);
+    if (partesNome.length < 2) {
+      return "Informe seu nome completo (nome e sobrenome).";
+    }
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+    return "Informe um e-mail válido.";
+  }
+  if (payload.senha.length < 8) {
+    return "A senha deve ter pelo menos 8 caracteres.";
+  }
+  if (cadastro && payload.senha !== payload.confirmarSenha) {
+    return "A confirmação da senha não confere.";
+  }
+  return null;
+}
+
+function alternarAutenticacao(modo) {
+  const cadastro = modo === "cadastro";
+  document.getElementById("auth-senha").autocomplete = cadastro ? "new-password" : "current-password";
+  document.getElementById("campos-cadastro").hidden = !cadastro;
+  document.getElementById("campo-confirmar").hidden = !cadastro;
+  document.getElementById("auth-nome").required = cadastro;
+  document.getElementById("auth-confirma").required = cadastro;
+  document.getElementById("tab-login").classList.toggle("ativo", !cadastro);
+  document.getElementById("tab-cadastro").classList.toggle("ativo", cadastro);
+  document.getElementById("titulo-autenticacao").textContent = cadastro ? "Criar conta" : "Entrar na TechNova";
+  document.getElementById("enviar-autenticacao").textContent = cadastro ? "Cadastrar" : "Entrar";
+  document.getElementById("form-autenticacao").dataset.modo = modo;
+}
+
+async function enviarAutenticacao(evento) {
+  evento.preventDefault();
+  const form = evento.currentTarget;
+  const cadastro = form.dataset.modo === "cadastro";
+  const payload = {
+    email: document.getElementById("auth-email").value.trim(),
+    senha: document.getElementById("auth-senha").value
+  };
+  if (cadastro) {
+    payload.nome = document.getElementById("auth-nome").value.trim();
+    payload.confirmarSenha = document.getElementById("auth-confirma").value;
+  }
+  const problema = validarFormularioAutenticacao(payload, cadastro);
+  if (problema) {
+    mostrarToast(problema, "erro");
+    return;
+  }
+  const botao = document.getElementById("enviar-autenticacao");
+  botao.disabled = true;
+  try {
+    const dados = await chamarApi(cadastro ? "/api/auth/cadastro" : "/api/auth/login", {
+      method: "POST", body: JSON.stringify(payload)
+    });
+    usuarioAtual = dados.usuario;
+    atualizarCabecalho();
+    document.getElementById("modal-autenticacao").classList.remove("visivel");
+    form.reset();
+    mostrarToast(autenticarParaComprar ? "Login feito. Confira o carrinho e finalize a compra." : "Acesso realizado com sucesso.");
+    if (autenticarParaComprar) abrirCarrinho();
+    autenticarParaComprar = false;
+  } catch (erro) {
+    mostrarToast(erro.message, "erro");
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function sairDaConta() {
+  try {
+    await chamarApi("/api/auth/logout", { method: "POST" });
+    usuarioAtual = null;
+    atualizarCabecalho();
+    mostrarToast("Sessão encerrada.");
+  } catch (erro) {
+    mostrarToast(erro.message, "erro");
+  }
+}
+
+async function carregarProdutos(inicial = false) {
+  try {
+    const dados = await chamarApi("/api/produtos");
+    limiarEstoque = Number(dados.limiarEstoque) || limiarEstoque;
+    produtos = dados.produtos.map(produto => new Produto(
+      produto.codigo, produto.nome, produto.categoria, Number(produto.preco),
+      Number(produto.estoque), produto.imagem
+    ));
+    if (inicial) restaurarCarrinho();
+    else {
+      carrinho.itens = carrinho.itens.flatMap(item => {
+        const atual = produtos.find(p => p.codigo === item.produto.codigo);
+        if (!atual || !atual.estaDisponivel()) return [];
+        item.produto = atual;
+        item.quantidade = Math.min(item.quantidade, atual.estoque);
+        return [item];
+      });
+    }
+    const blocoContagem = document.getElementById("numero-produtos");
+    if (blocoContagem) blocoContagem.textContent = produtos.length;
+    renderizarCategorias();
+    atualizarInterfaceCarrinho();
+    return true;
+  } catch (erro) {
+    document.getElementById("mensagem-busca").textContent = erro.message + " Verifique se o backend está em execução.";
+    document.getElementById("mensagem-busca").classList.add("visivel");
+    return false;
+  }
+}
+
 function configurarEventos() {
   document.getElementById("botao-carrinho").addEventListener("click", abrirCarrinho);
   document.getElementById("fechar-carrinho").addEventListener("click", fecharCarrinho);
   document.getElementById("overlay").addEventListener("click", fecharCarrinho);
   document.getElementById("botao-finalizar").addEventListener("click", finalizarCompra);
+  document.getElementById("botao-confirmar-pedido").addEventListener("click", confirmarPedido);
+  document.getElementById("botao-voltar-carrinho").addEventListener("click", () => {
+    fecharConfirmacao();
+    abrirCarrinho();
+  });
   document.getElementById("fechar-modal").addEventListener("click", () => {
     document.getElementById("modal-sucesso").classList.remove("visivel");
   });
-
-  document.getElementById("campo-busca").addEventListener("input", (evento) => {
+  document.getElementById("campo-busca").addEventListener("input", evento => {
     termoBusca = evento.target.value;
     renderizarProdutos();
   });
-
-  document.getElementById("ordenar-produtos").addEventListener("change", (evento) => {
+  document.getElementById("ordenar-produtos").addEventListener("change", evento => {
     criterioOrdenacao = evento.target.value;
     renderizarProdutos();
   });
-
   document.getElementById("botao-cupom").addEventListener("click", aplicarCupom);
-  document.getElementById("campo-cupom").addEventListener("keydown", (evento) => {
-    if (evento.key === "Enter") {
-      aplicarCupom();
-    }
+  document.getElementById("campo-cupom").addEventListener("keydown", evento => {
+    if (evento.key === "Enter") aplicarCupom();
   });
+  document.getElementById("botao-conta").addEventListener("click", abrirAutenticacao);
+  document.getElementById("botao-sair").addEventListener("click", sairDaConta);
+  document.getElementById("fechar-autenticacao").addEventListener("click", () => {
+    document.getElementById("modal-autenticacao").classList.remove("visivel");
+  });
+  document.getElementById("tab-login").addEventListener("click", () => alternarAutenticacao("login"));
+  document.getElementById("tab-cadastro").addEventListener("click", () => alternarAutenticacao("cadastro"));
+  document.getElementById("form-autenticacao").addEventListener("submit", enviarAutenticacao);
 }
 
-function iniciar() {
-  restaurarCarrinho();
-  renderizarCategorias();
-  renderizarProdutos();
-  atualizarInterfaceCarrinho();
+async function iniciar() {
   configurarEventos();
+  alternarAutenticacao("login");
+  try {
+    const dados = await chamarApi("/api/auth/me");
+    usuarioAtual = dados.usuario;
+  } catch (erro) {
+    mostrarToast("Não foi possível consultar sua sessão.", "erro");
+  }
+  atualizarCabecalho();
+  await carregarProdutos(true);
 }
 
 iniciar();
