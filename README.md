@@ -1,130 +1,170 @@
-<div align="center">
+# TechNova Store — N2 | Programação para Web
 
-# `</>` TechNova Store
+E-commerce acadêmico desenvolvido pelo Grupo 8, com frontend HTML/CSS/JavaScript, API Node.js/Express e banco de dados relacional MySQL 8.
 
-**Equipamento que aguenta o replay.**
+## Integrantes — Grupo 8
 
-Loja virtual de tecnologia e periféricos gamer — catálogo, carrinho, cupons e checkout, tudo em HTML, CSS e JavaScript puros.
+- Paulo Vitor Lucena Mendes
+- Jayme Bernardino da Silva Neto
+- Valter Junio Lopes Xavier
+- Isaac Barbosa da Silva
+- João Pedro Carneiro Ibiapino
+- Vinicius da Silva Alves
 
-[![Live Demo](https://img.shields.io/badge/demo-online-4FD8C4?style=for-the-badge)](https://tech-nova-snowy.vercel.app/)
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+A interface preserva a identidade visual da N1. A N2 substitui as simulações de compra e estoque por operações reais e persistentes na API e no banco.
 
-[Ver demo ao vivo](https://tech-nova-snowy.vercel.app/) · [Repositório](https://github.com/PauloMendes-cmd/Tech-Nova)
+## Requisitos
 
-</div>
+- Node.js 20 ou mais recente
+- MySQL 8 com serviço iniciado
+- npm
 
----
-## - Integrantes - Grupo 8
-- PAULO VITOR LUCENA MENDES
-- JAYME BERNARDINO DA SILVA NETO
-- VALTER JUNIO LOPES XAVIER
-- ISAAC BARBOSA DA SILVA
-- JOÃO PEDRO CARNEIRO IBIAPINO
-- VINICIUS DA SILVA ALVES
+## Instalação no Windows
 
+1. Extraia o ZIP em uma pasta no computador.
+2. Abra o MySQL Workbench e conecte ao servidor MySQL 8.
+3. Execute, nesta ordem, `backend/db/schema.sql` e `backend/db/seed.sql`.
+4. Abra a pasta raiz do projeto no VS Code e abra o terminal PowerShell.
+5. Execute `npm install`.
+6. Copie `.env.example` para `.env` na **raiz** do projeto e configure `DB_USER`, `DB_PASSWORD`, `DB_HOST` e `DB_NAME` conforme o MySQL local. As contas de demonstração já vêm preenchidas. O arquivo `.env` não deve ser enviado ao GitHub.
+7. Execute `npm run create:demo` para cadastrar no banco as contas de demonstração (administrador e cliente).
+8. Execute `npm start`.
+9. Acesse **http://localhost:3000** no navegador.
 
-## - Sobre o projeto
+Exemplo de comandos PowerShell:
 
-**TechNova Store** é uma loja virtual fictícia focada em notebooks, periféricos e acessórios gamer. O projeto simula uma experiência de e-commerce completa — busca, filtros, ordenação, carrinho persistente e cupom de desconto — sem depender de nenhum framework ou backend: é JavaScript puro manipulando o DOM, com o "banco de dados" de produtos vivendo diretamente no código.
-
-> Projeto acadêmico da disciplina de Programação para Web (2026).
-
-## - Funcionalidades
-
-- - **Carrinho de compras completo** — adicionar, aumentar/diminuir quantidade e remover itens, com validação de estoque em tempo real
-- - **Busca por nome** de produto, em tempo real
-- - **Filtro por categoria** (Informática, Games, Acessórios)
-- - **Ordenação** por relevância, menor preço, maior preço ou nome (A–Z)
-- - **Descontos automáticos**:
-  - 10% de desconto no subtotal a partir de **R$ 3.000**, com barra de progresso mostrando quanto falta
-  - Cupom `TECHNOVA5` para 5% de desconto adicional
-- - **Persistência local** — o carrinho é salvo no `localStorage` e restaurado ao recarregar a página
-- - **Controle de estoque** — produtos esgotados ficam desabilitados e itens com poucas unidades exibem o selo "Últimas X!"
-- - **Feedback visual** — toasts de sucesso/erro e modal de confirmação de pedido
-- - **Interface responsiva** com identidade visual própria (tipografia *Chakra Petch* + *Inter* + *JetBrains Mono*)
-
-## - Demo
-
-A aplicação está publicada na Vercel:
-
-**- [tech-nova-snowy.vercel.app](https://tech-nova-snowy.vercel.app/)**
-
-## - Tecnologias utilizadas
-
-| Tecnologia | Uso |
-|---|---|
-| **HTML5** | Estrutura semântica da página |
-| **CSS3** | Estilização, variáveis de tema e responsividade |
-| **JavaScript (ES6+)** | Lógica de negócio, classes (`Produto`, `ItemCarrinho`, `Carrinho`) e manipulação do DOM |
-| **Vercel** | Deploy e hospedagem |
-
-Não há dependências externas além das fontes do Google Fonts — o projeto roda 100% no navegador, sem `build step`.
-
-## - Estrutura do projeto
-
-```
-Tech-Nova/
-├── index.html       # Estrutura da página (header, hero, catálogo, carrinho)
-├── README.md
-├── css/style.css    # Tema visual, layout e responsividade
-├── js/script.js     # Classes de domínio e toda a lógica da loja
-└── images/
-    ├── notebook.jpg
-    ├── mouse.jpg
-    ├── console.jpg
-    ├── controle.jpg
-    ├── headset.jpg
-    └── cadeira.jpg
+```powershell
+Copy-Item .env.example .env
+npm install
+npm run create:demo
+npm start
 ```
 
-## - Como rodar localmente
+O comando `npm run create:admin` cria apenas a conta de administrador, caso seja necessário.
 
-Por ser um projeto 100% estático, não é necessário instalar nada. Basta:
+## Credenciais de demonstração
 
-```bash
-# 1. Clone o repositório
-git clone https://github.com/PauloMendes-cmd/Tech-Nova.git
+Contas criadas pelo comando `npm run create:demo`, **exclusivas do ambiente de avaliação**. Não são credenciais reais e não dão acesso a nenhum outro sistema.
 
-# 2. Entre na pasta
-cd Tech-Nova
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Administrador | `admin@technova.demo` | `TechNova@Admin2026` |
+| Cliente | `cliente@technova.demo` | `TechNova@Cliente2026` |
 
-# 3. Abra o index.html no navegador
+O painel administrativo fica em **http://localhost:3000/admin.html** e só abre para a conta de administrador. Novos clientes também podem ser criados pelo cadastro público da loja, que nunca cria administradores.
+
+Não é suficiente abrir `index.html` diretamente: todas as funções da N2 dependem do backend e do MySQL em execução.
+
+## Funcionalidades
+
+**Público**
+
+- Catálogo de seis produtos iniciais, com busca, categorias, ordenação, disponibilidade e imagens, carregados da API.
+- Carrinho que pode ser utilizado antes do login e preservado no `localStorage` durante a autenticação.
+- Alteração de quantidades, remoção, somatório de itens e desconto de 10% a partir de R$ 3.000.
+- Cupom de demonstração `TECHNOVA5` para mais 5 pontos percentuais de desconto.
+- Cadastro de cliente, login e logout, com senha protegida por bcrypt e sessão persistida no MySQL.
+- Finalização em duas etapas: resumo de confirmação (itens, quantidades, subtotal, desconto e valor final) e, depois, confirmação do pedido.
+- Compra autenticada, cálculo dos valores no servidor, verificação do estoque, registro de itens e pedido, e baixa do estoque em **uma transação**.
+- Validação dos formulários de login e cadastro no navegador (nome completo, e-mail, tamanho da senha e confirmação) e, de novo, no servidor.
+- Histórico de compras do cliente, com preços históricos, data, itens e total.
+
+**Administrador**
+
+- Painel de indicadores: quantidade de produtos ativos, estoque baixo (1 a 3 unidades, critério definido no servidor), esgotados e pedidos.
+- Tabela de produtos com sinalização de saldo **Baixo** e **Esgotado**.
+- Cadastro, edição e desativação de produtos sem apagar pedidos antigos.
+- Entradas, saídas e ajustes administrativos de estoque, todos com justificativa e histórico.
+- Histórico com variação, saldo final e responsável, inclusive baixas realizadas por vendas.
+- Consulta a todos os pedidos e seus itens.
+
+A compra não integra pagamento real, conforme o enunciado. Um pedido confirmado é registrado como `Concluído`.
+
+## Estrutura
+
+```text
+TechNova-N2/
+├── index.html
+├── admin.html
+├── pedidos.html
+├── css/
+│   ├── style.css
+│   └── painel.css
+├── js/
+│   ├── script.js
+│   ├── admin.js
+│   └── pedidos.js
+├── images/
+├── backend/
+│   ├── server.js
+│   ├── db.js
+│   ├── logic.js
+│   ├── db/schema.sql
+│   ├── db/seed.sql
+│   └── scripts/
+│       ├── create-admin.js
+│       └── create-demo.js
+├── tests/regras.test.js
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
 ```
 
-Ou, se preferir um servidor local (recomendado para evitar bloqueios de CORS em alguns navegadores):
+## Rotas da API
 
-```bash
-npx serve .
-# ou
-python -m http.server 8080
-```
+| Método | Rota | Acesso | Função |
+|---|---|---|---|
+| GET | `/api/health` | Público | Verificar conexão com o banco |
+| GET | `/api/produtos` | Público | Consultar catálogo |
+| GET | `/api/categorias` | Público | Consultar categorias |
+| POST | `/api/auth/cadastro` | Público | Criar conta de cliente |
+| POST | `/api/auth/login` | Público | Login |
+| POST | `/api/auth/logout` | Público | Logout |
+| GET | `/api/auth/me` | Público | Identificar sessão |
+| GET | `/api/pedidos` | Logado | Meus pedidos |
+| GET | `/api/pedidos/:id` | Logado | Consultar um pedido (dono ou admin; outro cliente recebe 403) |
+| POST | `/api/pedidos` | Logado | Finalizar compra |
+| GET | `/api/admin/resumo` | Admin | Indicadores |
+| GET | `/api/admin/produtos` | Admin | Listar produtos |
+| POST | `/api/admin/produtos` | Admin | Cadastrar produto |
+| PUT | `/api/admin/produtos/:id` | Admin | Editar ou reativar produto |
+| DELETE | `/api/admin/produtos/:id` | Admin | Desativar produto |
+| POST | `/api/admin/estoque` | Admin | Movimentar estoque |
+| GET | `/api/admin/movimentacoes` | Admin | Histórico de estoque |
+| GET | `/api/admin/pedidos` | Admin | Todos os pedidos |
 
-## - Arquitetura do código
+As rotas restritas verificam a sessão e o perfil no backend. A API não aceita preço ou total calculado no navegador como referência para a compra. Os dados são enviados/recebidos em JSON, com autenticação por cookie `HttpOnly`.
 
-A lógica da loja é organizada em três classes principais dentro de `script.js`:
+## Testes
 
-- **`Produto`** — representa um item do catálogo (código, nome, categoria, preço, estoque, imagem) e controla sua própria disponibilidade e estoque.
-- **`ItemCarrinho`** — associa um produto a uma quantidade e calcula seu subtotal.
-- **`Carrinho`** — gerencia a lista de itens, aplica cupons, calcula subtotal/desconto/total e persiste o estado.
+`npm test` executa os testes automatizados das regras de negócio (desconto, cupom e validação dos itens do pedido).
 
-O restante do arquivo cuida da renderização (cards de produto, painel do carrinho, categorias) e dos eventos de interface.
+Roteiro de verificação manual (integração com MySQL e navegador):
 
-## - Cupom de teste
+1. Navegar pelo catálogo e buscar produto inexistente.
+2. Adicionar itens e alterar quantidades, inclusive tentar ultrapassar o estoque.
+3. Tentar finalizar uma compra sem estar logado: deverá solicitar autenticação e preservar o carrinho.
+4. Criar uma conta e confirmar a compra, depois visualizar o pedido no histórico.
+5. Conferir o pedido, os itens, a baixa de estoque e o registro da movimentação no MySQL.
+6. Testar desconto automático e cupom, comparando com o pedido salvo no banco.
+7. Entrar como admin, cadastrar e editar um produto.
+8. Registrar entrada, saída e ajuste, conferir saldo e histórico.
+9. Tentar acessar `/api/admin/produtos` usando conta de cliente: deve retornar HTTP 403.
+10. Tentar comprar quantidade maior que o estoque: deve retornar HTTP 409 sem criar pedido parcial.
+11. Abrir duas sessões e tentar comprar simultaneamente o estoque restante: apenas a compra que obtiver o saldo deve ser concluída.
+12. Desativar um produto e confirmar que ele desaparece do catálogo, sem excluir o histórico de pedidos.
+13. Logado como cliente, abrir `/api/pedidos/ID` com o número de um pedido de outro usuário: deve retornar HTTP 403. Com o número de um pedido próprio, retorna o pedido; com um número inexistente, HTTP 404.
+14. No painel, conferir os selos **Baixo** e **Esgotado** na coluna de estoque.
 
-Para testar o desconto extra, use o cupom:
+## Observações para apresentação
 
-```
-TECHNOVA5
-```
+- **POO:** `Produto`, `ItemCarrinho` e `Carrinho` em `js/script.js`.
+- **for:** percorre o catálogo e os itens do carrinho.
+- **while:** calcula a quantidade total no carrinho.
+- **arrow functions:** presentes nos eventos e nas funções de manipulação do carrinho.
+- **DOM:** os produtos e o carrinho são renderizados dinamicamente.
+- **Transação:** `backend/server.js` cria o pedido, seus itens e movimentações e atualiza o estoque com bloqueio `FOR UPDATE` e `COMMIT` ou `ROLLBACK`.
+- **Persistência:** todas as alterações de produtos, usuários, pedidos e estoque acontecem no MySQL.
 
-## - Licença
-
-Este projeto não possui uma licença definida. Sinta-se à vontade para adicionar uma (MIT é uma boa escolha para projetos acadêmicos abertos).
-
----
-
-<div align="center">
-  <sub>Feito com 💚 e JavaScript puro.</sub>
-</div>
+O código foi deixado sem comentários explicativos nos arquivos de implementação, conforme exigido para a apresentação.

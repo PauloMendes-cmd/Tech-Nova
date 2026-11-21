@@ -19,9 +19,14 @@
         <span class="marca-simbolo">&lt;/&gt;</span>
         <span class="marca-nome">TechNova</span>
       </div>
-      <button id="botao-carrinho" class="botao-carrinho">
-        Carrinho <span id="contador-carrinho">0</span>
-      </button>
+      <nav class="navegacao-conta" aria-label="Conta e carrinho">
+        <span id="nome-usuario" class="nome-usuario"></span>
+        <a href="pedidos.html" id="link-pedidos" class="link-topo" hidden>Meus pedidos</a>
+        <a href="admin.html" id="link-admin" class="link-topo" hidden>Painel admin</a>
+        <button id="botao-conta" class="botao-conta">Entrar / cadastrar</button>
+        <button id="botao-sair" class="botao-conta" hidden>Sair</button>
+        <button id="botao-carrinho" class="botao-carrinho">Carrinho <span id="contador-carrinho">0</span></button>
+      </nav>
     </div>
   </header>
 
@@ -32,7 +37,7 @@
       <p class="hero-texto">Notebooks, periféricos e acessórios para quem joga e trabalha sério — sem enrolação, com estoque real e preço claro.</p>
       <div class="hero-estatisticas">
         <div class="estatistica">
-          <span class="estatistica-numero">6</span>
+          <span id="numero-produtos" class="estatistica-numero">0</span>
           <span class="estatistica-label">produtos no catálogo</span>
         </div>
         <div class="estatistica">
@@ -113,11 +118,47 @@
     </div>
   </aside>
 
+  <div id="modal-confirmacao" class="modal">
+    <div class="modal-conteudo modal-confirmacao">
+      <h2>Confirmar pedido</h2>
+      <p class="confirmacao-aviso">Revise o resumo da compra antes de confirmar.</p>
+      <div id="resumo-confirmacao"></div>
+      <button id="botao-confirmar-pedido" class="botao-finalizar" type="button">Confirmar pedido</button>
+      <button id="botao-voltar-carrinho" class="botao-voltar" type="button">Voltar ao carrinho</button>
+    </div>
+  </div>
+
   <div id="modal-sucesso" class="modal">
     <div class="modal-conteudo">
       <h2>Pedido confirmado</h2>
       <div id="resumo-final"></div>
       <button id="fechar-modal" class="botao-finalizar">Fechar</button>
+    </div>
+  </div>
+
+  <div id="modal-autenticacao" class="modal">
+    <div class="modal-conteudo modal-auth">
+      <button id="fechar-autenticacao" class="fechar botao-fechar-modal" type="button" aria-label="Fechar">&times;</button>
+      <h2 id="titulo-autenticacao">Entrar na TechNova</h2>
+      <div class="abas-auth">
+        <button id="tab-login" class="ativo" type="button">Login</button>
+        <button id="tab-cadastro" type="button">Criar conta</button>
+      </div>
+      <form id="form-autenticacao" data-modo="login" novalidate>
+        <div id="campos-cadastro" hidden>
+          <label for="auth-nome">Nome completo</label>
+          <input id="auth-nome" type="text" autocomplete="name" minlength="3" maxlength="120" />
+        </div>
+        <label for="auth-email">E-mail</label>
+        <input id="auth-email" type="email" autocomplete="email" required maxlength="190" />
+        <label for="auth-senha">Senha</label>
+        <input id="auth-senha" type="password" autocomplete="current-password" required minlength="8" />
+        <div id="campo-confirmar" hidden>
+          <label for="auth-confirma">Confirmar senha</label>
+          <input id="auth-confirma" type="password" autocomplete="new-password" />
+        </div>
+        <button id="enviar-autenticacao" type="submit" class="botao-finalizar">Entrar</button>
+      </form>
     </div>
   </div>
 
