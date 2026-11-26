@@ -21,19 +21,21 @@ A interface preserva a identidade visual da N1. A N2 substitui as simulações d
 
 ## Instalação no Windows
 
-1. Extraia o ZIP em uma pasta no computador.
+1. Clone o repositório com `git clone https://github.com/PauloMendes-cmd/Tech-Nova.git` (ou extraia o ZIP em uma pasta no computador) e entre na pasta do projeto.
 2. Abra o MySQL Workbench e conecte ao servidor MySQL 8.
 3. Execute, nesta ordem, `backend/db/schema.sql` e `backend/db/seed.sql`.
 4. Abra a pasta raiz do projeto no VS Code e abra o terminal PowerShell.
 5. Execute `npm install`.
 6. Copie `.env.example` para `.env` na **raiz** do projeto e configure `DB_USER`, `DB_PASSWORD`, `DB_HOST` e `DB_NAME` conforme o MySQL local. As contas de demonstração já vêm preenchidas. O arquivo `.env` não deve ser enviado ao GitHub.
 7. Execute `npm run create:demo` para cadastrar no banco as contas de demonstração (administrador e cliente).
-8. Execute `npm start`.
+8. Execute `npm start`. O frontend (HTML, CSS e JavaScript) é servido pelo próprio Express, então esse único comando inicia frontend e backend.
 9. Acesse **http://localhost:3000** no navegador.
 
 Exemplo de comandos PowerShell:
 
 ```powershell
+git clone https://github.com/PauloMendes-cmd/Tech-Nova.git
+cd Tech-Nova
 Copy-Item .env.example .env
 npm install
 npm run create:demo
@@ -83,7 +85,7 @@ A compra não integra pagamento real, conforme o enunciado. Um pedido confirmado
 ## Estrutura
 
 ```text
-TechNova-N2/
+Tech-Nova/
 ├── index.html
 ├── admin.html
 ├── pedidos.html
