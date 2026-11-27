@@ -1,0 +1,24 @@
+{
+  "name": "technova-n2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "TechNova Store - N2 Programação para Web",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "create:admin": "node backend/scripts/create-admin.js",
+    "create:demo": "node backend/scripts/create-demo.js",
+    "test": "node --test tests/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mysql2": "^3.12.0"
+  }
+}
