@@ -151,6 +151,8 @@ let temporizadorToast = null;
 let usuarioAtual = null;
 let autenticarParaComprar = false;
 let limiarEstoque = 3;
+let resumoCompra = null;
+let preparandoResumo = false;
 const CHAVE_ARMAZENAMENTO = "technova-carrinho";
 
 function formatarMoeda(valor) {
@@ -178,6 +180,7 @@ async function chamarApi(caminho, opcoes = {}) {
   if (!resposta.ok) {
     const erro = new Error(dados.erro || "Não foi possível concluir a operação.");
     erro.status = resposta.status;
+    erro.codigo = dados.codigo;
     throw erro;
   }
   return dados;
@@ -436,23 +439,12 @@ function salvarCarrinho() {
   for (const item of carrinho.itens) {
     dados.push({ codigo: item.produto.codigo, quantidade: item.quantidade });
   }
-  localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(dados));
+  ArmazenamentoCarrinho.salvar(CHAVE_ARMAZENAMENTO, dados, carrinho.cupom);
 }
 
 function restaurarCarrinho() {
-  const dadosSalvos = localStorage.getItem(CHAVE_ARMAZENAMENTO);
-  if (!dadosSalvos) {
-    return;
-  }
-
-  let itensSalvos = [];
-  try {
-    itensSalvos = JSON.parse(dadosSalvos);
-  } catch (erro) {
-    return;
-  }
-
-  for (const itemSalvo of itensSalvos) {
+  const dadosSalvos = ArmazenamentoCarrinho.ler(CHAVE_ARMAZENAMENTO);
+  for (const itemSalvo of dadosSalvos.itens) {
     const produto = produtos.find((p) => p.codigo === itemSalvo.codigo);
     if (produto) {
       const solicitada = Number(itemSalvo.quantidade);
@@ -462,6 +454,7 @@ function restaurarCarrinho() {
       }
     }
   }
+  if (!carrinho.estaVazio() && dadosSalvos.cupom) carrinho.aplicarCupom(dadosSalvos.cupom);
 }
 
 function aplicarCupom() {
@@ -494,7 +487,7 @@ function atualizarResumoCarrinho() {
   salvarCarrinho();
 
   const botaoFinalizar = document.getElementById("botao-finalizar");
-  botaoFinalizar.disabled = carrinho.estaVazio();
+  botaoFinalizar.disabled = carrinho.estaVazio() || preparandoResumo;
 }
 
 function atualizarInterfaceCarrinho() {
@@ -517,41 +510,68 @@ function finalizarCompra() {
   abrirConfirmacao();
 }
 
-function abrirConfirmacao() {
-  let linhas = "";
-  for (const item of carrinho.itens) {
-    linhas += `<div class="confirmacao-linha"><span>${item.quantidade}x ${escaparHtml(item.produto.nome)}</span>` +
-      `<span>${formatarMoeda(item.calcularSubtotal())}</span></div>`;
+async function abrirConfirmacao() {
+  if (preparandoResumo || carrinho.estaVazio()) return;
+  preparandoResumo = true;
+  document.getElementById("botao-finalizar").disabled = true;
+  try {
+    const itens = carrinho.itens.map(item => ({ codigo: item.produto.codigo, quantidade: item.quantidade }));
+    const dados = await chamarApi("/api/pedidos/resumo", {
+      method: "POST", body: JSON.stringify({ itens, cupom: carrinho.cupom })
+    });
+    resumoCompra = dados;
+    let linhas = "";
+    for (const item of dados.itens) {
+      linhas += `<div class="confirmacao-linha"><span>${item.quantidade}x ${escaparHtml(item.nome)}</span>` +
+        `<span>${formatarMoeda(item.subtotal)}</span></div>`;
+    }
+    const quantidade = dados.itens.reduce((total, item) => total + item.quantidade, 0);
+    document.getElementById("resumo-confirmacao").innerHTML = linhas +
+      `<div class="confirmacao-linha"><span>Itens</span><span>${quantidade}</span></div>` +
+      `<div class="confirmacao-linha"><span>Subtotal</span><span>${formatarMoeda(dados.subtotal)}</span></div>` +
+      `<div class="confirmacao-linha"><span>Desconto</span><span>${formatarMoeda(dados.desconto)}</span></div>` +
+      `<div class="confirmacao-linha confirmacao-total"><span>Valor final</span><span>${formatarMoeda(dados.total)}</span></div>`;
+    fecharCarrinho();
+    document.getElementById("modal-confirmacao").classList.add("visivel");
+    document.getElementById("botao-confirmar-pedido").focus();
+  } catch (erro) {
+    mostrarToast(erro.message, "erro");
+    if (erro.status === 401) {
+      usuarioAtual = null;
+      atualizarCabecalho();
+      autenticarParaComprar = true;
+      abrirAutenticacao();
+    } else if (erro.status === 409) {
+      await carregarProdutos();
+    }
+  } finally {
+    preparandoResumo = false;
+    document.getElementById("botao-finalizar").disabled = carrinho.estaVazio();
   }
-  document.getElementById("resumo-confirmacao").innerHTML = linhas +
-    `<div class="confirmacao-linha"><span>Itens</span><span>${carrinho.calcularQuantidadeTotal()}</span></div>` +
-    `<div class="confirmacao-linha"><span>Subtotal</span><span>${formatarMoeda(carrinho.calcularSubtotal())}</span></div>` +
-    `<div class="confirmacao-linha"><span>Desconto</span><span>${formatarMoeda(carrinho.calcularDesconto())}</span></div>` +
-    `<div class="confirmacao-linha confirmacao-total"><span>Valor final</span><span>${formatarMoeda(carrinho.calcularTotal())}</span></div>`;
-  fecharCarrinho();
-  document.getElementById("modal-confirmacao").classList.add("visivel");
 }
 
 function fecharConfirmacao() {
   document.getElementById("modal-confirmacao").classList.remove("visivel");
+  resumoCompra = null;
 }
 
 async function confirmarPedido() {
-  if (carrinho.estaVazio()) {
+  if (carrinho.estaVazio() || !resumoCompra) {
     fecharConfirmacao();
-    mostrarToast("Carrinho vazio: adicione produtos antes de finalizar.", "erro");
+    mostrarToast("Abra o resumo da compra antes de confirmar.", "erro");
     return;
   }
   const botao = document.getElementById("botao-confirmar-pedido");
   botao.disabled = true;
   botao.textContent = "Confirmando pedido...";
+  const resumo = resumoCompra;
   try {
-    const itens = carrinho.itens.map(item => ({ codigo: item.produto.codigo, quantidade: item.quantidade }));
+    const itens = resumo.itens.map(item => ({ codigo: item.codigo, quantidade: item.quantidade }));
     const dados = await chamarApi("/api/pedidos", {
-      method: "POST", body: JSON.stringify({ itens, cupom: carrinho.cupom })
+      method: "POST", body: JSON.stringify({ itens, cupom: resumo.cupom, confirmacao: resumo.confirmacao })
     });
-    const linhas = carrinho.itens.map(item =>
-      `<p>${item.quantidade}x ${escaparHtml(item.produto.nome)}</p>`).join("");
+    const linhas = resumo.itens.map(item =>
+      `<p>${item.quantidade}x ${escaparHtml(item.nome)}</p>`).join("");
     document.getElementById("resumo-final").innerHTML =
       `<p><strong>Pedido #${escaparHtml(dados.numeroPedido)}</strong></p>${linhas}` +
       `<p>Subtotal: ${formatarMoeda(dados.subtotal)}</p>` +
@@ -572,10 +592,14 @@ async function confirmarPedido() {
       atualizarCabecalho();
       autenticarParaComprar = true;
       abrirAutenticacao();
+    } else if (erro.codigo === "RESUMO_ALTERADO" || erro.codigo === "RESUMO_EXPIRADO") {
+      await carregarProdutos();
+      await abrirConfirmacao();
+      mostrarToast(erro.message, "erro");
     } else {
       abrirCarrinho();
+      if (erro.status === 409) await carregarProdutos();
     }
-    if (erro.status === 409) await carregarProdutos();
   } finally {
     botao.textContent = "Confirmar pedido";
     botao.disabled = false;
@@ -626,6 +650,9 @@ function validarFormularioAutenticacao(payload, cadastro) {
   }
   if (payload.senha.length < 8) {
     return "A senha deve ter pelo menos 8 caracteres.";
+  }
+  if (new TextEncoder().encode(payload.senha).length > 72) {
+    return "A senha é longa demais. Use até 72 bytes UTF-8; letras acentuadas podem ocupar mais de um byte.";
   }
   if (cadastro && payload.senha !== payload.confirmarSenha) {
     return "A confirmação da senha não confere.";

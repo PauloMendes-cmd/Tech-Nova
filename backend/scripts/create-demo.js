@@ -1,10 +1,11 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
+const { senhaValida } = require('../logic');
 
 async function salvarUsuario(nome, email, senha, perfil) {
-  if (!nome || !email || !senha || senha.length < 8) {
-    throw new Error('Configure nome, e-mail e senha (mínimo de 8 caracteres) das contas de demonstração no .env.');
+  if (!nome || !email || !senhaValida(senha)) {
+    throw new Error('Configure nome, e-mail e senha (mínimo de 8 caracteres e máximo de 72 bytes UTF-8) das contas de demonstração no .env.');
   }
   const hash = await bcrypt.hash(senha, 12);
   await pool.execute(

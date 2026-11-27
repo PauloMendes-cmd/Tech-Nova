@@ -12,6 +12,10 @@ function reais(valorEmCentavos) {
   return (valorEmCentavos / 100).toFixed(2);
 }
 
+function senhaValida(senha, minimo = 8) {
+  return typeof senha === 'string' && senha.length >= minimo && Buffer.byteLength(senha, 'utf8') <= 72;
+}
+
 function calcularValores(itens, cupom = null) {
   let subtotalCentavos = 0;
   for (const item of itens) {
@@ -47,4 +51,4 @@ function validarItens(itens) {
   }).sort((a, b) => a.codigo - b.codigo);
 }
 
-module.exports = { erroHttp, centavos, reais, calcularValores, validarItens };
+module.exports = { erroHttp, centavos, reais, calcularValores, validarItens, senhaValida };

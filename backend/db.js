@@ -13,4 +13,10 @@ const pool = mysql.createPool({
   timezone: 'Z'
 });
 
+pool.on('connection', conexao => {
+  conexao.query("SET time_zone = '+00:00'", erro => {
+    if (erro) conexao.destroy();
+  });
+});
+
 module.exports = pool;

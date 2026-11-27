@@ -4,7 +4,9 @@ const path = require('path');
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const pool = require('./db');
-const { erroHttp, calcularValores, validarItens, centavos, reais } = require('./logic');
+const { erroHttp, calcularValores, validarItens, centavos, reais, senhaValida } = require('./logic');
+const { criarConfirmacao, validarConfirmacao } = require('./checkout');
+const { limitarTentativas } = require('./limites');
 
 const app = express();
 const raiz = path.resolve(__dirname, '..');
@@ -112,7 +114,7 @@ app.use('/api', carregarUsuario);
 
 app.get('/api/auth/me', (req, res) => res.json({ usuario: responderUsuario(req.usuario) }));
 
-app.post('/api/auth/cadastro', rota(async (req, res) => {
+app.post('/api/auth/cadastro', limitarTentativas(20), rota(async (req, res) => {
   const nome = String(req.body?.nome || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   const senha = req.body?.senha;
@@ -120,7 +122,7 @@ app.post('/api/auth/cadastro', rota(async (req, res) => {
   if (nome.length < 3 || nome.length > 120) throw erroHttp(400, 'Informe seu nome completo.');
   if (nome.split(/\s+/).length < 2) throw erroHttp(400, 'Informe nome e sobrenome.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 190) throw erroHttp(400, 'E-mail inválido.');
-  if (typeof senha !== 'string' || senha.length < 8 || senha.length > 72) throw erroHttp(400, 'Use uma senha de 8 a 72 caracteres.');
+  if (!senhaValida(senha)) throw erroHttp(400, 'Use uma senha com pelo menos 8 caracteres e no máximo 72 bytes UTF-8.');
   if (senha !== confirmarSenha) throw erroHttp(400, 'A confirmação da senha não confere.');
   const hash = await bcrypt.hash(senha, 12);
   try {
@@ -136,10 +138,10 @@ app.post('/api/auth/cadastro', rota(async (req, res) => {
   }
 }));
 
-app.post('/api/auth/login', rota(async (req, res) => {
+app.post('/api/auth/login', limitarTentativas(30), rota(async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const senha = req.body?.senha;
-  if (typeof senha !== 'string' || !email) throw erroHttp(400, 'Informe e-mail e senha.');
+  if (!senhaValida(senha, 1) || !email) throw erroHttp(400, 'Informe e-mail e senha válidos (senha de até 72 bytes UTF-8).');
   const [usuarios] = await pool.execute('SELECT * FROM usuarios WHERE email = ? LIMIT 1', [email]);
   const usuario = usuarios[0];
   if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
@@ -205,23 +207,41 @@ app.get('/api/pedidos/:id', exigirLogin, rota(async (req, res) => {
   res.json({ pedido });
 }));
 
+async function carregarProdutosPedido(conexao, itens, bloquear = false) {
+  const produtos = [];
+  for (const item of itens) {
+    const [linhas] = await conexao.execute(
+      `SELECT id, nome, preco, estoque, ativo FROM produtos WHERE id = ?${bloquear ? ' FOR UPDATE' : ''}`,
+      [item.codigo]
+    );
+    const produto = linhas[0];
+    if (!produto || !produto.ativo) throw erroHttp(409, `O produto ${item.codigo} não está disponível.`);
+    if (produto.estoque < item.quantidade) throw erroHttp(409, `Estoque insuficiente para ${produto.nome}. Disponível: ${produto.estoque}.`);
+    produtos.push({ ...produto, quantidade: item.quantidade });
+  }
+  return produtos;
+}
+
+app.post('/api/pedidos/resumo', exigirLogin, rota(async (req, res) => {
+  const itens = validarItens(req.body?.itens);
+  const produtos = await carregarProdutosPedido(pool, itens);
+  const valores = calcularValores(produtos, req.body?.cupom);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    itens: produtos.map(p => ({ codigo: p.id, nome: p.nome, quantidade: p.quantidade,
+      precoUnitario: p.preco, subtotal: reais(centavos(p.preco) * p.quantidade) })),
+    ...valores, confirmacao: criarConfirmacao(req.usuario.id, produtos, valores)
+  });
+}));
+
 app.post('/api/pedidos', exigirLogin, rota(async (req, res) => {
   const itens = validarItens(req.body?.itens);
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const produtos = [];
-    for (const item of itens) {
-      const [linhas] = await conn.execute(
-        'SELECT id, nome, preco, estoque, ativo FROM produtos WHERE id = ? FOR UPDATE',
-        [item.codigo]
-      );
-      const produto = linhas[0];
-      if (!produto || !produto.ativo) throw erroHttp(409, `O produto ${item.codigo} não está disponível.`);
-      if (produto.estoque < item.quantidade) throw erroHttp(409, `Estoque insuficiente para ${produto.nome}. Disponível: ${produto.estoque}.`);
-      produtos.push({ ...produto, quantidade: item.quantidade });
-    }
+    const produtos = await carregarProdutosPedido(conn, itens, true);
     const valores = calcularValores(produtos, req.body?.cupom);
+    validarConfirmacao(req.body?.confirmacao, req.usuario.id, produtos, valores);
     const [resultado] = await conn.execute(
       `INSERT INTO pedidos (usuario_id, subtotal, desconto, total, cupom) VALUES (?, ?, ?, ?, ?)`,
       [req.usuario.id, valores.subtotal, valores.desconto, valores.total, valores.cupom]
@@ -385,7 +405,7 @@ app.use((erro, req, res, next) => {
   if (erro.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ erro: 'Categoria ou referência inexistente.' });
   if (erro.code === 'ER_DUP_ENTRY') return res.status(409).json({ erro: 'Já existe um registro com estes dados.' });
   if (erro.type === 'entity.parse.failed') return res.status(400).json({ erro: 'JSON inválido.' });
-  if (erro.status) return res.status(erro.status).json({ erro: erro.message });
+  if (erro.status) return res.status(erro.status).json({ erro: erro.message, ...(erro.codigo ? { codigo: erro.codigo } : {}) });
   console.error('Erro interno:', erro);
   res.status(500).json({ erro: 'Falha interna. Tente novamente.' });
 });

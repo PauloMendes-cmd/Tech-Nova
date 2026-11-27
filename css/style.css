@@ -661,6 +661,7 @@ body {
   z-index: 30;
   align-items: center;
   justify-content: center;
+  padding: 16px 0;
 }
 
 .modal.visivel {
@@ -674,6 +675,10 @@ body {
   padding: 30px;
   max-width: 400px;
   width: 90%;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
   animation: surgir 0.2s ease;
 }

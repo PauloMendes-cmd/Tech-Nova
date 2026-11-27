@@ -1,13 +1,14 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
+const { senhaValida } = require('../logic');
 
 async function main() {
   const nome = process.env.ADMIN_NAME;
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const senha = process.env.ADMIN_PASSWORD;
-  if (!nome || !email || !senha || senha.length < 12 || senha === 'defina-uma-senha-forte-aqui') {
-    throw new Error('Configure ADMIN_NAME, ADMIN_EMAIL e ADMIN_PASSWORD com pelo menos 12 caracteres no .env.');
+  if (!nome || !email || !senhaValida(senha, 12) || senha === 'defina-uma-senha-forte-aqui') {
+    throw new Error('Configure ADMIN_NAME, ADMIN_EMAIL e ADMIN_PASSWORD com pelo menos 12 caracteres e até 72 bytes UTF-8 no .env.');
   }
   const hash = await bcrypt.hash(senha, 12);
   await pool.execute(
