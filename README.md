@@ -183,19 +183,3 @@ Roteiro de verificação manual (integração com MySQL e navegador):
 15. Aplicar o cupom e recarregar a loja: itens, cupom e total devem permanecer iguais, enquanto os produtos continuarem disponíveis pelos mesmos preços.
 16. Abrir o resumo de compra, alterar o preço com outra sessão de administrador e confirmar: nenhum pedido deve ser criado nessa tentativa. O novo resumo deve aparecer e exigir outro clique em Confirmar pedido.
 17. Em tela pequena e carrinho com vários produtos, rolar o modal e acessar Confirmar pedido e Voltar ao carrinho.
-
-## Apresentação
-
-A apresentação revisada fica em `docs/TechNova-N2-apresentacao.pdf`. Mantém as 13 páginas e inclui o resumo recalculado no servidor, a persistência do cupom, as sete tabelas e o link do repositório.
-
-## Observações para apresentação
-
-- **POO:** `Produto`, `ItemCarrinho` e `Carrinho` em `js/script.js`.
-- **for:** percorre o catálogo e os itens do carrinho.
-- **while:** calcula a quantidade total no carrinho.
-- **arrow functions:** presentes nos eventos e nas funções de manipulação do carrinho.
-- **DOM:** os produtos e o carrinho são renderizados dinamicamente.
-- **Transação:** `backend/server.js` cria o pedido, seus itens e movimentações e atualiza o estoque com bloqueio `FOR UPDATE` e `COMMIT` ou `ROLLBACK`.
-- **Persistência:** todas as alterações de produtos, usuários, pedidos e estoque acontecem no MySQL.
-
-O código foi deixado sem comentários explicativos nos arquivos de implementação, conforme exigido para a apresentação.
