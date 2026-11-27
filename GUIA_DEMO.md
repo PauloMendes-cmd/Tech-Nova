@@ -4,7 +4,7 @@
 
 1. Mostrar o catálogo vindo do MySQL e procurar um produto pelo nome.
 2. Adicionar itens e alterar quantidades no carrinho; experimentar o limite de estoque.
-3. Aplicar a promoção de 10% acima de R$ 3.000 e, se desejar, o cupom `TECHNOVA5`.
+3. Aplicar a promoção de 10% a partir de R$ 3.000 e, se desejar, o cupom `TECHNOVA5`.
 4. Tentar finalizar sem login e demonstrar que o carrinho é preservado.
 5. Criar um cliente (testar também senha diferente da confirmação), fazer login e clicar em Finalizar compra.
 6. Mostrar o resumo de confirmação, confirmar o pedido e mostrar o número gerado.
@@ -25,7 +25,7 @@
 
 **Onde estão for e while?** Há `for` na construção de categorias, na filtragem e renderização dos produtos, no resumo de confirmação e nos cálculos do carrinho; no servidor, `for...of` percorre os itens dentro da transação do pedido. O `while` está em `Carrinho.calcularQuantidadeTotal`: percorre os itens do carrinho somando as quantidades, com condição de parada em `this.itens.length`, então termina sempre e não trava a interface.
 
-**Por que a confirmação antes de gravar?** O botão Finalizar compra só valida (carrinho vazio, login) e abre o resumo. Somente o botão Confirmar pedido chama a API.
+**Por que a confirmação antes de gravar?** O botão Finalizar compra verifica carrinho e login e chama `POST /api/pedidos/resumo`, que calcula os valores no servidor. Somente Confirmar pedido chama `POST /api/pedidos` para gravar. O resumo assinado vale por dez minutos e não reserva estoque. Se preço ou total mudarem, o sistema mostra um novo resumo e exige nova confirmação.
 
 **Por que o backend recalcula o valor?** O navegador pode ser manipulado. O servidor usa o preço real salvo no banco para impedir compras com valores adulterados.
 
@@ -38,6 +38,12 @@
 **Como diferenciar cliente de administrador?** A tabela `usuarios` possui o campo `perfil`. As rotas `/api/admin/*` verificam esse perfil no servidor, e não só na interface.
 
 **Como manter os preços históricos?** `itens_pedido` grava o preço unitário no momento da compra. Alterar o preço cadastrado depois não altera pedidos anteriores.
+
+**O cupom continua após recarregar?** Sim. O armazenamento local guarda itens e cupom em um formato versionado, aceita carrinhos antigos e descarta dados inválidos sem bloquear o catálogo.
+
+**Quantas tabelas existem?** Sete: as seis tabelas de negócio dos slides e `sessoes`, que guarda hash do token, usuário e validade do login. As conexões do backend usam UTC para interpretar as datas corretamente.
+
+**Como demonstrar uma mudança de preço?** Deixe o resumo do cliente aberto e altere o preço desse produto em outra sessão de administrador. Ao confirmar, a primeira tentativa deve retornar conflito sem criar pedido. Revise o novo valor e confirme novamente.
 
 ## Antes da apresentação
 
